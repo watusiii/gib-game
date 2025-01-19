@@ -9,35 +9,45 @@ A modular pixel character framework for all GIB Raiders game projects! Build you
 - **Pixel Perfect**: Crisp, clean, retro style
 - **Ultra Light**: No dependencies, just pure JavaScript goodness
 
-## 🎮 Demo Features
+## 🔧 Quick Setup
 
-- **Modular Parts System**: 
-  ```
-  [Left Arm] [Eye] [Mouth] [Eye] [Right Arm] [Item]
-         └── Mix & match for infinite combinations! ──┘
-  ```
-- **Smooth Animations**: 
-  - Bouncy idle with wave-like motion
-  - Independent part animation
-  - Pixel-perfect movement
-  - Jump physics ready
+1. **Local Server Setup** (choose one):
+   ```bash
+   # Using Python 3
+   python -m http.server
 
-## 🔧 Quick Implementation
+   # Using Python 2
+   python -m SimpleHTTPServer
 
-1. Add the files to your project:
-```
-character.js     # The core system
-sheet-export.png # The sprite sheet
-```
+   # Using Node.js
+   npm install -g http-server
+   http-server
+   
+   # Using VS Code
+   Install "Live Server" extension and click "Go Live"
+   ```
 
-2. Create a character:
-```javascript
-const character = new Character(gameContext);
-```
+2. **Add Files to Your Project**:
+   ```
+   gib-character.js   # The core system
+   sheet-export.png   # The sprite sheet
+   ```
 
-3. GIB IT LIFE! (づ｡◕‿‿◕｡)づ
+3. **Import and Create**:
+   ```javascript
+   import { GibCharacter } from './gib-character.js';
 
-## 🎯 Demo Controls
+   // Create character (needs canvas context with groundHeight property)
+   const character = new GibCharacter(gameContext);
+
+   // In your game loop
+   character.update();
+   character.render(ctx);
+   ```
+
+4. GIB IT LIFE! (づ｡◕‿‿◕｡)づ
+
+## 🎮 Demo Controls
 
 - **Move**: `A`/`D` or Arrow Keys
 - **Jump**: `Space`
@@ -45,10 +55,21 @@ const character = new Character(gameContext);
 
 ## 🚀 For Developers
 
-- Fully documented code
-- Easy to extend
-- Add your own sprite sheets
-- Implement in any game type
+- **HTML Setup**:
+  ```html
+  <!-- Make sure to use type="module" -->
+  <script type="module" src="your-game.js"></script>
+  ```
+
+- **Game Context Requirements**:
+  ```javascript
+  // Your game context needs:
+  {
+    canvas: HTMLCanvasElement,    // The game canvas
+    groundHeight: number,         // Height of ground from bottom
+    ctx: CanvasRenderingContext2D // 2D rendering context
+  }
+  ```
 
 ## 🎨 Sprite System
 
@@ -67,12 +88,18 @@ This is YOUR character system! Feel free to:
 
 ## 🎮 Try the Demo
 
-1. Clone it
-2. Open `index.html`
+1. Set up a local server (see Quick Setup)
+2. Open in your browser (usually `http://localhost:8000`)
 3. Start GIBing! (づ｡◕‿‿◕｡)づ
 
 ## 🔄 Updates & Contributions
 
 Got ideas? Want to add features? Let's make it even better together!
+
+## 🛠️ Troubleshooting
+
+- **"Failed to load module script"**: Make sure you're running a local server
+- **Black rectangles instead of sprites**: Check if sprite sheet path is correct
+- **No movement**: Ensure game context has required properties
 
 Made with 💜 by the GIB Raiders Community 
