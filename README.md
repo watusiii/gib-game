@@ -1,14 +1,35 @@
-# GIB Character System (づ｡◕‿‿◕｡)づ
+# GIB Engine System (づ｡◕‿‿◕｡)づ
 
-A modular pixel character framework for all GIB Raiders game projects! Build your own games with our community's character system. Pure JavaScript, infinitely customizable, ready to GIB! 
+A modular framework for all GIB Raiders game projects! Build your own games with our community's character system. Pure JavaScript, infinitely customizable, ready to GIB! 
 
-## ⭐ Why Use This?
+## ⭐ Features
 
-- **Drop-in Ready**: Add to any web game project in minutes
-- **Community Resource**: Built by Raiders, for Raiders
-- **Pixel Perfect**: Crisp, clean, retro style
-- **Ultra Light**: No dependencies, just pure JavaScript goodness
-- **Unity-like Collisions**: Entity-based collision system with event handling
+- **Modular Character System**: 
+  - 6-part character composition (arms, eyes, mouth, item)
+  - Hot-swappable sprite parts
+  - Independent part animations
+  - Scale-independent rendering
+
+- **Advanced Collision System**:
+  - Entity-based architecture
+  - Multiple collision box types:
+    - `hitbox`: For physical collisions (centered on character)
+    - `interaction`: For item pickup/NPC interaction (larger area around character)
+    - `platform`: For solid objects and surfaces
+  - Event-driven collision handling
+  - Visual debugging tools
+
+- **Platform System**:
+  - Solid collision detection
+  - Grid-based sprite system
+  - Customizable dimensions
+  - Automatic collision box generation
+
+- **Debug Features**:
+  - 'B' key: Toggle collision box visualization
+  - 'V' key: Toggle sprite part boundaries
+  - Real-time dimension display
+  - Color-coded collision types
 
 ## 🎮 Core Systems
 
@@ -48,70 +69,92 @@ A modular pixel character framework for all GIB Raiders game projects! Build you
 
 2. **Add Files to Your Project**:
    ```
-   gib-character.js   # The core character system
+   gib-character.js   # Core character system
    entity.js          # Base entity class
    collision-box.js   # Collision system
-   sheet-export.png   # The sprite sheet
+   platform.js        # Platform system
+   sheet-export.png   # Character sprite sheet
    ```
 
-3. **Import and Create**:
+3. **Import and Create Character**:
    ```javascript
    import { GibCharacter } from './gib-character.js';
 
-   // Create character (needs canvas context with groundHeight property)
    const character = new GibCharacter(gameContext);
+   ```
 
-   // In your game loop
-   character.update();
-   character.render(ctx);
+4. **Add Platforms**:
+   ```javascript
+   import { Platform } from './platform.js';
+
+   const platform = new Platform(gameContext, x, y, width, height);
    ```
 
 ## 🎮 Controls
 
-- **Move**: `A`/`D` or Arrow Keys
-- **Jump**: `Space`
-- **Customize Parts**: Number Keys `1-6`
-- **Toggle Collision Boxes**: `B`
-- **Toggle Sprite Outlines**: `V`
+- **Movement**: Arrow Keys or A/D
+- **Jump**: Space
+- **Change Parts**: Number Keys 1-6
+- **Debug Toggles**:
+  - B: Show collision boxes
+  - V: Show sprite boundaries
 
 ## 🚀 For Developers
 
-### Creating New Entities
+### Entity System
+All game objects inherit from the Entity base class:
 ```javascript
 class MyEntity extends Entity {
     constructor(gameContext) {
-        super(gameContext);
-        
+        super(gameContext, {
+            spriteSize: 20,    // Size of each sprite
+            spriteCols: 2,     // Horizontal sprites
+            spriteRows: 2,     // Vertical sprites
+            scale: 1           // Render scale
+        });
+
         // Add collision boxes
         this.addCollisionBox('main', {
-            width: this.width * 0.8,
-            height: this.height * 0.8,
+            widthPercent: 0.8,   // Percent of entity width
+            heightPercent: 0.8,   // Percent of entity height
+            offset: {            // Position offset
+                x: this.width * 0.1,
+                y: this.height * 0.1
+            },
             type: 'hitbox'
-        });
-        
-        // Handle collisions
-        this.onCollision('main', (other, boxName) => {
-            // Collision response here
         });
     }
 }
 ```
 
-### Game Context Requirements
+### Collision System
+Collision boxes can be:
+- Percentage-based or fixed size
+- Offset from parent entity
+- Multiple types per entity
+- Event-driven responses
+
 ```javascript
-{
-    canvas: HTMLCanvasElement,    // The game canvas
-    groundHeight: number,         // Height of ground from bottom
-    ctx: CanvasRenderingContext2D // 2D rendering context
-}
+// Handle collisions
+this.onCollision('boxName', (other, otherBoxName) => {
+    if (other.constructor.name === 'Platform') {
+        // Handle platform collision
+    }
+});
+```
+
+### Platform Creation
+```javascript
+const platform = new Platform(gameContext, 100, 300, 200, 20);
 ```
 
 ## 🎨 Sprite System
 
-Each character is built from 6 modular 10x10 pixel parts:
+Character sprites are:
+- 10x10 pixels each
+- Arranged in 6 columns (parts)
+- Multiple variations per part
 - Independently animated
-- Hot-swappable
-- Easy to create new variations
 
 ## 🌟 Community Resource
 
@@ -137,5 +180,15 @@ Got ideas? Want to add features? Let's make it even better together!
 - **Black rectangles instead of sprites**: Check if sprite sheet path is correct
 - **No movement**: Ensure game context has required properties
 - **Collision boxes not showing**: Press 'B' to toggle debug mode
+- **Sprite boundaries not visible**: Press 'V' to toggle sprite debug
+- **Platform collision issues**: Ensure collision boxes are properly sized
+- **Character not landing**: Check platform collision box type is 'platform'
+
+## 🔄 Future Enhancements
+
+- Moving platforms
+- More collision box types
+- Additional character parts
+- Animation system expansion
 
 Made with 💜 by the GIB Raiders Community 
