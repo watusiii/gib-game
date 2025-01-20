@@ -5,9 +5,16 @@ export class Entity {
         this.game = gameContext;
         this.x = config.x || 0;
         this.y = config.y || 0;
-        this.width = config.width || 0;
-        this.height = config.height || 0;
         this.scale = config.scale || 1;
+        
+        // Sprite configuration
+        this.spriteSize = config.spriteSize || 10;  // Default 10x10 sprites
+        this.spriteCols = config.spriteCols || 1;   // Number of sprites horizontally
+        this.spriteRows = config.spriteRows || 1;   // Number of sprites vertically
+        
+        // Calculate total dimensions based on sprite configuration
+        this.width = this.spriteSize * this.spriteCols * this.scale;
+        this.height = this.spriteSize * this.spriteRows * this.scale;
         
         // Collision system
         this.collisionBoxes = {};
@@ -17,11 +24,43 @@ export class Entity {
         this.debug = config.debug || false;
     }
 
+    // Helper method to get actual rendered dimensions
+    getRenderedDimensions() {
+        return {
+            width: this.width,
+            height: this.height,
+            spriteWidth: this.spriteSize * this.scale,
+            spriteHeight: this.spriteSize * this.scale
+        };
+    }
+
+    // Helper to calculate collision box size relative to entity size
+    calculateBoxSize(widthPercent, heightPercent) {
+        return {
+            width: this.width * widthPercent,
+            height: this.height * heightPercent
+        };
+    }
+
     addCollisionBox(name, config) {
+        // If percentages are provided, calculate actual sizes
+        if (config.widthPercent || config.heightPercent) {
+            const size = this.calculateBoxSize(
+                config.widthPercent || 1, 
+                config.heightPercent || 1
+            );
+            config.width = size.width;
+            config.height = size.height;
+        }
+
+        // Create collision box with current entity position
         this.collisionBoxes[name] = new CollisionBox({
             ...config,
+            x: this.x,
+            y: this.y,
             debug: this.debug
         });
+
         return this.collisionBoxes[name];
     }
 
@@ -40,7 +79,7 @@ export class Entity {
     }
 
     update() {
-        // Update collision boxes positions
+        // Update all collision boxes with current entity position
         Object.values(this.collisionBoxes).forEach(box => {
             box.update(this.x, this.y, this.scale);
         });

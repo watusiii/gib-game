@@ -25,18 +25,18 @@ export class GibCharacter extends Entity {
     constructor(gameContext) {
         super(gameContext, {
             debug: true,
-            scale: 3
+            scale: 3,
+            spriteSize: 10,
+            spriteCols: 6,    // Character is 6 sprites wide
+            spriteRows: 1     // And 1 sprite tall
         });
         
         this.spriteSheet = new SpriteSheet();
-        this.spriteSize = 10;
-        this.width = this.spriteSize * 6 * this.scale;
-        this.height = this.spriteSize * this.scale;
         this.speed = 4;
         
         // Physics properties
         this.gravity = 0.5;
-        this.jumpForce = -8;
+        this.jumpForce = -12;
         this.velocityY = 0;
         this.isJumping = false;
         
@@ -118,25 +118,31 @@ export class GibCharacter extends Entity {
         
         this.setupControls();
 
-        // Setup collision boxes with better sizing
+        // Setup collision boxes with percentage-based sizing
         this.addCollisionBox('body', {
-            width: this.width * 0.4,    // Tighter hitbox
-            height: this.height * 0.8,
+            widthPercent: .5,     // 50% of total width
+            heightPercent: 1.0,     // 80% of total height
             offset: { 
-                x: this.width * 0.3,    // Center it better
-                y: this.height * 0.2 
+                // Center on mouth sprite (sprite index 2 out of 6)
+                x: (this.width * 0.25) + (this.spriteSize * this.scale)*-1,  // Move right by one sprite width
+                y: 0
             },
-            type: 'hitbox'
+            type: 'hitbox',
+            color: 'rgba(255, 0, 0, 0.3)',
+            debug: true
         });
 
         this.addCollisionBox('interaction', {
-            width: this.width * 0.8,     // Smaller interaction zone
-            height: this.height * 1.2,
+            widthPercent: 1.0,      // 70% of total width
+            heightPercent: 1.0,      // 100% of total height
             offset: { 
-                x: this.width * 0.1,     // Center it better
-                y: -this.height * 0.1 
+                // Center on mouth sprite (sprite index 2 out of 6)
+                x: (this.width * 0.15) + (this.spriteSize * this.scale)*-1,  // Move right by one sprite width
+                y: 0
             },
-            type: 'interaction'
+            type: 'interaction',
+            color: 'rgba(0, 255, 0, 0.3)',
+            debug: true
         });
 
         // Example collision handlers
@@ -151,6 +157,18 @@ export class GibCharacter extends Entity {
             if (other.constructor.name === 'Item' && boxName === 'pickup') {
                 // Handle item pickup
                 console.log('Can pick up item!');
+            }
+        });
+
+        // Platform collision handler
+        this.onCollision('body', (other, boxName) => {
+            if (other.constructor.name === 'Platform' && boxName === 'platform') {
+                if (this.velocityY > 0) {  // Only collide when falling
+                    console.log('Platform collision!');  // Debug log
+                    this.y = other.y - this.height;
+                    this.velocityY = 0;
+                    this.isJumping = false;
+                }
             }
         });
     }
@@ -209,15 +227,17 @@ export class GibCharacter extends Entity {
         if (this.movingRight) this.x += this.speed;
         this.x = Math.max(0, Math.min(this.x, this.game.canvas.width - this.width));
 
-        if (this.isJumping) {
+        // Apply gravity
+        if (this.isJumping || this.y < this.baseY) {
             this.velocityY += this.gravity;
             this.y += this.velocityY;
+        }
 
-            if (this.y >= this.baseY) {
-                this.y = this.baseY;
-                this.velocityY = 0;
-                this.isJumping = false;
-            }
+        // Ground collision (only if not on platform)
+        if (this.y >= this.baseY) {
+            this.y = this.baseY;
+            this.velocityY = 0;
+            this.isJumping = false;
         }
 
         const currentTime = performance.now();
@@ -225,7 +245,7 @@ export class GibCharacter extends Entity {
         this.updateAnimation(deltaTime);
         this.lastTime = currentTime;
 
-        // Update collision boxes through Entity class
+        // Update collision boxes
         super.update();
     }
 

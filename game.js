@@ -1,4 +1,6 @@
 import { GibCharacter } from './gib-character.js';
+import { Platform } from './platform.js';
+import { CollisionManager } from './collision-manager.js';
 
 class Game {
     constructor() {
@@ -14,11 +16,26 @@ class Game {
         this.setupCanvas();
         window.addEventListener('resize', () => this.setupCanvas());
 
+        // Create collision manager
+        this.collisionManager = new CollisionManager();
+
         // Debug mode for collision boxes
         this.debugMode = true;
         
         // Create character instance
         this.character = new GibCharacter(this);
+        this.collisionManager.addEntity(this.character);
+        
+        // Create test platforms
+        this.platforms = [
+            new Platform(this, 300, 400, 200, 20),  // Mid-height platform
+            new Platform(this, 600, 300, 200, 20),  // Higher platform
+            new Platform(this, 100, 500, 200, 20)   // Lower platform
+        ];
+        
+        this.platforms.forEach(platform => {
+            this.collisionManager.addEntity(platform);
+        });
         
         requestAnimationFrame(() => this.gameLoop());
 
@@ -26,8 +43,9 @@ class Game {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'b') {
                 this.debugMode = !this.debugMode;
-                Object.values(this.character.collisionBoxes)
-                    .forEach(box => box.debug = this.debugMode);
+                [this.character, ...this.platforms].forEach(entity => {
+                    entity.setDebug(this.debugMode);
+                });
             }
             // Add sprite outline debug toggle
             if (e.key === 'v') {
@@ -57,12 +75,19 @@ class Game {
 
     update() {
         this.character.update();
+        this.collisionManager.update();
     }
 
     render() {
         this.ctx.fillStyle = '#fff';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawGround();
+        
+        // Render platforms
+        this.platforms.forEach(platform => {
+            platform.render(this.ctx);
+        });
+        
         this.character.render(this.ctx);
     }
 

@@ -8,6 +8,25 @@ A modular pixel character framework for all GIB Raiders game projects! Build you
 - **Community Resource**: Built by Raiders, for Raiders
 - **Pixel Perfect**: Crisp, clean, retro style
 - **Ultra Light**: No dependencies, just pure JavaScript goodness
+- **Unity-like Collisions**: Entity-based collision system with event handling
+
+## 🎮 Core Systems
+
+### Character System
+- Modular 10x10 pixel sprites
+- Hot-swappable character parts
+- Smooth animations and physics
+- Scale-independent rendering
+
+### Collision System
+- Entity-based architecture
+- Multiple collision box types:
+  - `hitbox`: For physical collisions
+  - `hurtbox`: For damage detection
+  - `interaction`: For item pickup/NPC interaction
+- Event-driven collision handling
+- Debug visualization (press 'B' to toggle)
+- Sprite boundary visualization (press 'V' to toggle)
 
 ## 🔧 Quick Setup
 
@@ -29,7 +48,9 @@ A modular pixel character framework for all GIB Raiders game projects! Build you
 
 2. **Add Files to Your Project**:
    ```
-   gib-character.js   # The core system
+   gib-character.js   # The core character system
+   entity.js          # Base entity class
+   collision-box.js   # Collision system
    sheet-export.png   # The sprite sheet
    ```
 
@@ -45,31 +66,45 @@ A modular pixel character framework for all GIB Raiders game projects! Build you
    character.render(ctx);
    ```
 
-4. GIB IT LIFE! (づ｡◕‿‿◕｡)づ
-
-## 🎮 Demo Controls
+## 🎮 Controls
 
 - **Move**: `A`/`D` or Arrow Keys
 - **Jump**: `Space`
 - **Customize Parts**: Number Keys `1-6`
+- **Toggle Collision Boxes**: `B`
+- **Toggle Sprite Outlines**: `V`
 
 ## 🚀 For Developers
 
-- **HTML Setup**:
-  ```html
-  <!-- Make sure to use type="module" -->
-  <script type="module" src="your-game.js"></script>
-  ```
+### Creating New Entities
+```javascript
+class MyEntity extends Entity {
+    constructor(gameContext) {
+        super(gameContext);
+        
+        // Add collision boxes
+        this.addCollisionBox('main', {
+            width: this.width * 0.8,
+            height: this.height * 0.8,
+            type: 'hitbox'
+        });
+        
+        // Handle collisions
+        this.onCollision('main', (other, boxName) => {
+            // Collision response here
+        });
+    }
+}
+```
 
-- **Game Context Requirements**:
-  ```javascript
-  // Your game context needs:
-  {
+### Game Context Requirements
+```javascript
+{
     canvas: HTMLCanvasElement,    // The game canvas
     groundHeight: number,         // Height of ground from bottom
     ctx: CanvasRenderingContext2D // 2D rendering context
-  }
-  ```
+}
+```
 
 ## 🎨 Sprite System
 
@@ -101,5 +136,6 @@ Got ideas? Want to add features? Let's make it even better together!
 - **"Failed to load module script"**: Make sure you're running a local server
 - **Black rectangles instead of sprites**: Check if sprite sheet path is correct
 - **No movement**: Ensure game context has required properties
+- **Collision boxes not showing**: Press 'B' to toggle debug mode
 
 Made with 💜 by the GIB Raiders Community 
