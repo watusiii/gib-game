@@ -1,3 +1,6 @@
+import { Entity } from './entity.js';
+import { CollisionBox } from './collision-box.js';
+
 // Sprite Sheet Management
 class SpriteSheet {
     constructor() {
@@ -18,26 +21,28 @@ class SpriteSheet {
 }
 
 // Main Character Class
-export class GibCharacter {
+export class GibCharacter extends Entity {
     constructor(gameContext) {
-        this.game = gameContext;
-        this.spriteSheet = new SpriteSheet();
+        super(gameContext, {
+            debug: true,
+            scale: 3
+        });
         
-        this.scale = 6;
+        this.spriteSheet = new SpriteSheet();
         this.spriteSize = 10;
         this.width = this.spriteSize * 6 * this.scale;
         this.height = this.spriteSize * this.scale;
-        this.speed = 8;
+        this.speed = 4;
         
         // Physics properties
-        this.gravity = 0.8;
-        this.jumpForce = -15;
+        this.gravity = 0.5;
+        this.jumpForce = -8;
         this.velocityY = 0;
         this.isJumping = false;
         
         // Position character
         this.x = Math.floor(gameContext.canvas.width / 2);
-        this.baseY = gameContext.canvas.height - gameContext.groundHeight - this.height - (8 * this.scale);
+        this.baseY = gameContext.canvas.height - gameContext.groundHeight - this.height - (4 * this.scale);
         this.y = this.baseY;
         
         // Sprite indices
@@ -112,6 +117,42 @@ export class GibCharacter {
         this.animationRestartTimer = null;
         
         this.setupControls();
+
+        // Setup collision boxes with better sizing
+        this.addCollisionBox('body', {
+            width: this.width * 0.4,    // Tighter hitbox
+            height: this.height * 0.8,
+            offset: { 
+                x: this.width * 0.3,    // Center it better
+                y: this.height * 0.2 
+            },
+            type: 'hitbox'
+        });
+
+        this.addCollisionBox('interaction', {
+            width: this.width * 0.8,     // Smaller interaction zone
+            height: this.height * 1.2,
+            offset: { 
+                x: this.width * 0.1,     // Center it better
+                y: -this.height * 0.1 
+            },
+            type: 'interaction'
+        });
+
+        // Example collision handlers
+        this.onCollision('body', (other, boxName) => {
+            if (other.constructor.name === 'Enemy' && boxName === 'damage') {
+                // Handle enemy damage
+                console.log('Hit by enemy!');
+            }
+        });
+
+        this.onCollision('interaction', (other, boxName) => {
+            if (other.constructor.name === 'Item' && boxName === 'pickup') {
+                // Handle item pickup
+                console.log('Can pick up item!');
+            }
+        });
     }
 
     setupControls() {
@@ -183,6 +224,9 @@ export class GibCharacter {
         const deltaTime = currentTime - this.lastTime;
         this.updateAnimation(deltaTime);
         this.lastTime = currentTime;
+
+        // Update collision boxes through Entity class
+        super.update();
     }
 
     updateAnimation(deltaTime) {
@@ -239,6 +283,7 @@ export class GibCharacter {
                 const xPos = this.x + (i * this.spriteSize * this.scale) + (offset.x * this.scale);
                 const yPos = this.y + (offset.y * this.scale);
                 
+                // Draw the sprite
                 ctx.drawImage(
                     this.spriteSheet.image,
                     sprite.x, sprite.y,
@@ -247,10 +292,29 @@ export class GibCharacter {
                     this.spriteSize * this.scale,
                     this.spriteSize * this.scale
                 );
+
+                // Draw debug outline if enabled
+                if (this.debugSprites) {
+                    ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(
+                        xPos, yPos,
+                        this.spriteSize * this.scale,
+                        this.spriteSize * this.scale
+                    );
+                    
+                    // Add part name above sprite
+                    ctx.fillStyle = 'red';
+                    ctx.font = '12px monospace';
+                    ctx.fillText(part.name, xPos, yPos - 5);
+                }
             }
         });
 
         ctx.restore();
+
+        // Render collision boxes through Entity class
+        super.render(ctx);
     }
 
     renderPlaceholders(ctx) {
@@ -277,5 +341,10 @@ export class GibCharacter {
             this.spriteSize * this.scale
         );
         ctx.restore();
+    }
+
+    // Add collision detection method
+    checkCollision(other) {
+        return this.collisionBoxes.body.intersects(other.collisionBoxes.body);
     }
 } 

@@ -14,10 +14,26 @@ class Game {
         this.setupCanvas();
         window.addEventListener('resize', () => this.setupCanvas());
 
+        // Debug mode for collision boxes
+        this.debugMode = true;
+        
         // Create character instance
         this.character = new GibCharacter(this);
         
         requestAnimationFrame(() => this.gameLoop());
+
+        // Add debug toggle
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'b') {
+                this.debugMode = !this.debugMode;
+                Object.values(this.character.collisionBoxes)
+                    .forEach(box => box.debug = this.debugMode);
+            }
+            // Add sprite outline debug toggle
+            if (e.key === 'v') {
+                this.character.debugSprites = !this.character.debugSprites;
+            }
+        });
     }
 
     setupCanvas() {
