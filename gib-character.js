@@ -39,6 +39,12 @@ export class GibCharacter extends Entity {
         this.jumpForce = -12;
         this.velocityY = 0;
         this.isJumping = false;
+        this.isGrounded = true;  // New property to track if on any surface
+        this.jumpStartTime = 0;
+        this.fallStartTime = 0;
+        this.isFalling = false;
+        this.hasReachedPeak = false;  // Track if we've reached the peak
+        this.peakStartTime = 0;       // When we started transitioning at peak
         
         // Position character
         this.x = Math.floor(gameContext.canvas.width / 2);
@@ -98,6 +104,56 @@ export class GibCharacter extends Entity {
                         amplitude: 0,
                         phaseOffset: 0,
                         verticalOnly: true
+                    }
+                }
+            },
+            jump: {
+                frameTime: 20,
+                lastFrameTime: 0,
+                frame: 0,
+                totalFrames: 30,
+                parts: {
+                    mouth: { 
+                        amplitude: 1,
+                        phaseOffset: 0,
+                        verticalOnly: true,
+                        baseOffset: -8,  // Much bigger mouth jump
+                        offsetDelay: 0
+                    },
+                    leftEye: { 
+                        amplitude: 1,
+                        phaseOffset: 0,
+                        verticalOnly: true,
+                        baseOffset: -5,  // Increased eye follow
+                        offsetDelay: 150  // Longer delay for more separation
+                    },
+                    rightEye: { 
+                        amplitude: 1,
+                        phaseOffset: 0,
+                        verticalOnly: true,
+                        baseOffset: -5,  // Increased eye follow
+                        offsetDelay: 150  // Longer delay for more separation
+                    },
+                    leftArm: { 
+                        amplitude: 3,
+                        phaseOffset: 0,
+                        horizontalAmplitude: 2,
+                        baseOffset: -3,
+                        offsetDelay: 250  // Even longer delay for arms
+                    },
+                    rightArm: { 
+                        amplitude: 3,
+                        phaseOffset: 0.5,
+                        horizontalAmplitude: 2,
+                        baseOffset: -3,
+                        offsetDelay: 250  // Even longer delay for arms
+                    },
+                    item: { 
+                        amplitude: 1,
+                        phaseOffset: 0.2,
+                        verticalOnly: true,
+                        baseOffset: -3,
+                        offsetDelay: 250
                     }
                 }
             }
@@ -168,6 +224,12 @@ export class GibCharacter extends Entity {
                     this.y = other.y - this.height;
                     this.velocityY = 0;
                     this.isJumping = false;
+                    this.isFalling = false;
+                    this.hasReachedPeak = false;
+                    this.isGrounded = true;
+                    if (this.currentAnimation === 'jump') {
+                        this.currentAnimation = 'idle';
+                    }
                 }
             }
         });
@@ -183,9 +245,12 @@ export class GibCharacter extends Entity {
                 this.movingRight = true;
                 this.facingLeft = false;
             }
-            if (e.key === ' ' && !this.isJumping) {
+            if (e.key === ' ' && !this.isJumping && this.isGrounded) {  // Check isGrounded instead of just !isJumping
                 this.velocityY = this.jumpForce;
                 this.isJumping = true;
+                this.isGrounded = false;  // No longer grounded when jumping
+                this.currentAnimation = 'jump';
+                this.jumpStartTime = performance.now();
             }
 
             const numberKey = parseInt(e.key);
@@ -227,17 +292,36 @@ export class GibCharacter extends Entity {
         if (this.movingRight) this.x += this.speed;
         this.x = Math.max(0, Math.min(this.x, this.game.canvas.width - this.width));
 
-        // Apply gravity
-        if (this.isJumping || this.y < this.baseY) {
+        // Track state transitions
+        if (this.isJumping) {
+            if (this.velocityY > 0 && !this.hasReachedPeak) {
+                // Just reached peak
+                this.hasReachedPeak = true;
+                this.peakStartTime = performance.now();
+            } else if (this.velocityY > 0 && this.hasReachedPeak) {
+                // Check if we've finished peak transition (200ms after reaching peak)
+                if (performance.now() - this.peakStartTime > 200 && !this.isFalling) {
+                    this.isFalling = true;
+                    this.fallStartTime = performance.now();
+                }
+            }
+        }
+
+        // Apply gravity if not grounded
+        if (!this.isGrounded) {
             this.velocityY += this.gravity;
             this.y += this.velocityY;
         }
 
-        // Ground collision (only if not on platform)
+        // Ground collision check
         if (this.y >= this.baseY) {
             this.y = this.baseY;
             this.velocityY = 0;
             this.isJumping = false;
+            this.isFalling = false;
+            this.hasReachedPeak = false;
+            this.isGrounded = true;
+            this.currentAnimation = 'idle';
         }
 
         const currentTime = performance.now();
@@ -268,6 +352,59 @@ export class GibCharacter extends Entity {
                     this.partOffsets[partName].x = Math.cos(adjustedAngle) * settings.horizontalAmplitude;
                 } else {
                     this.partOffsets[partName].x = 0;
+                }
+
+                // Apply jump wave effect if jumping
+                if (this.isJumping && settings.baseOffset) {
+                    const timeSinceJump = performance.now() - this.jumpStartTime;
+                    const timeSincePeak = performance.now() - this.peakStartTime;
+                    const timeSinceFall = performance.now() - this.fallStartTime;
+
+                    if (this.isFalling && settings.fallOffset) {
+                        // Falling animation
+                        if (timeSinceFall >= settings.offsetDelay) {
+                            let transitionDuration = 100; // Default fast for mouth
+                            
+                            // Different durations for different parts
+                            if (partName.includes('Eye')) {
+                                transitionDuration = 200;
+                            } else if (partName.includes('Arm') || partName === 'item') {
+                                transitionDuration = 250;
+                            }
+                            
+                            const fallProgress = Math.min((timeSinceFall - settings.offsetDelay) / transitionDuration, 1);
+                            const easeInOut = fallProgress < 0.5 
+                                ? 2 * fallProgress * fallProgress 
+                                : 1 - Math.pow(-2 * fallProgress + 2, 2) / 2;
+                            
+                            // Once fall animation completes, maintain the fall offset
+                            const finalOffset = fallProgress >= 1 ? settings.fallOffset : settings.fallOffset * easeInOut;
+                            this.partOffsets[partName].y += finalOffset;
+                        }
+                    } else if (this.hasReachedPeak) {
+                        // Transition to neutral at peak
+                        const peakProgress = Math.min(timeSincePeak / 200, 1); // 200ms transition
+                        const easeOut = 1 - Math.pow(1 - peakProgress, 2);
+                        
+                        // Gradually reduce the jump offset to 0
+                        const currentJumpOffset = settings.baseOffset * (1 - easeOut);
+                        this.partOffsets[partName].y += currentJumpOffset;
+                    } else if (timeSinceJump >= settings.offsetDelay) {
+                        // Rising animation
+                        let transitionDuration = 100;
+                        if (partName.includes('Eye')) {
+                            transitionDuration = 200;
+                        } else if (partName.includes('Arm') || partName === 'item') {
+                            transitionDuration = 250;
+                        }
+                        
+                        const jumpProgress = Math.min((timeSinceJump - settings.offsetDelay) / transitionDuration, 1);
+                        const easeInOut = jumpProgress < 0.5 
+                            ? 2 * jumpProgress * jumpProgress 
+                            : 1 - Math.pow(-2 * jumpProgress + 2, 2) / 2;
+                        
+                        this.partOffsets[partName].y += settings.baseOffset * easeInOut;
+                    }
                 }
             }
         }
@@ -366,5 +503,30 @@ export class GibCharacter extends Entity {
     // Add collision detection method
     checkCollision(other) {
         return this.collisionBoxes.body.intersects(other.collisionBoxes.body);
+    }
+
+    // Modify platform collision handler
+    onCollision(boxName, callback) {
+        if (boxName === 'body') {
+            super.onCollision(boxName, (other, otherBoxName) => {
+                if (other.constructor.name === 'Platform' && otherBoxName === 'platform') {
+                    if (this.velocityY > 0) {  // Only collide when falling
+                        this.y = other.y - this.height;
+                        this.velocityY = 0;
+                        this.isJumping = false;
+                        this.isFalling = false;
+                        this.hasReachedPeak = false;
+                        this.isGrounded = true;
+                        if (this.currentAnimation === 'jump') {
+                            this.currentAnimation = 'idle';
+                        }
+                    }
+                }
+                // Call the original callback
+                callback(other, otherBoxName);
+            });
+        } else {
+            super.onCollision(boxName, callback);
+        }
     }
 } 
